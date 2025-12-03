@@ -29,7 +29,7 @@ SHEET_COURSE = "Course_Maxy"  # Sheet untuk course manual
 
 # 1. API Key
 # PENTING: Ganti dengan key asli Anda. Jangan commit key asli ke GitHub publik!
-GEMINI_API_KEY = "AIzaSyA8HdquILdHjGN0iGrpuII5ccFKPloZdmE"
+GEMINI_API_KEY = "AIzaSyCR8xgDIv5oYBaDmMyuGGWjqpFi7U8SGA4"
 
 # 2. Model Settings
 # Menggunakan model Flash yang cepat dan hemat biaya
@@ -122,3 +122,4 @@ def get_api_status() -> dict:
         'gemini': bool(GEMINI_API_KEY) and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE",
         'google_cse': bool(GOOGLE_CSE_ID) and GOOGLE_CSE_ID != "YOUR_GOOGLE_CSE_ID_HERE"
     }
+
