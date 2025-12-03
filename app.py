@@ -621,10 +621,7 @@ def render_skkni_info():
     else:
         st.error("⚠️ Data okupasi tidak tersedia. Silakan periksa konfigurasi Anda.")
 
-def render_learning_path_courses():
-    """Render learning path and course recommendations"""
-    st.markdown("### 📚 Learning Path & Rekomendasi Course")
-    
+def render_learning_path_courses():    
     matcher = init_matcher()
     if not matcher:
         st.error("⚠️ Tidak dapat membuat learning path. Matcher tidak tersedia.")
@@ -1254,3 +1251,4 @@ if __name__ == "__main__":
 # 3. Jalankan: streamlit run app.py
 
 # ========================================
+
