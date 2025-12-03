@@ -621,7 +621,11 @@ def render_skkni_info():
     else:
         st.error("⚠️ Data okupasi tidak tersedia. Silakan periksa konfigurasi Anda.")
 
-def render_learning_path_courses():    
+def render_learning_path_courses():
+    """Render learning path and course recommendations"""
+    # Hapus judul utama ini
+    # st.markdown("### 📚 Learning Path & Rekomendasi Course")
+    
     matcher = init_matcher()
     if not matcher:
         st.error("⚠️ Tidak dapat membuat learning path. Matcher tidak tersedia.")
@@ -639,6 +643,8 @@ def render_learning_path_courses():
     
     # Display Learning Path
     if learning_path:
+        # Hapus atau ubah judul bagian learning path
+        # st.markdown("#### 📖 Learning Path Rekomendasi")
         if UTILS_LOADED:
             display_learning_path(learning_path)
         else:
@@ -647,32 +653,18 @@ def render_learning_path_courses():
     
     # Display Recommended Courses
     st.markdown("#### 🎓 Rekomendasi Course")
+    st.info(f"🔍 Mencari course berdasarkan: **{st.session_state.mapped_okupasi_nama}**")
     
     if matcher.df_courses is None or matcher.df_courses.empty:
         st.warning(f"⚠️ Data course belum tersedia. Tambahkan sheet **'{SHEET_COURSE}'** di file Excel.")
         return
     
-    # Extract keywords from okupasi and user profile
-    okupasi_details = st.session_state.okupasi_info
+    # Extract keywords ONLY from okupasi name
     okupasi_nama = st.session_state.mapped_okupasi_nama or ""
     
-    # Collect all keywords
-    all_keywords = set()
-    
-    # From learning path
-    for phase in learning_path:
-        all_keywords.update([s.lower() for s in phase.get('skills', [])])
-    
-    # From okupasi skills
-    okupasi_skills = okupasi_details.get('kuk_keywords', [])
-    all_keywords.update([s.lower() for s in okupasi_skills if isinstance(s, str)])
-    
-    # From user profile
-    all_keywords.update([s.lower() for s in user_skills])
-    
-    # From okupasi name - split into words
-    okupasi_words = okupasi_nama.lower().split()
-    all_keywords.update(okupasi_words)
+    # Split okupasi name into individual words as keywords
+    # Example: "Data Scientist" -> ["data", "scientist"]
+    all_keywords = set(word.lower() for word in okupasi_nama.split() if word)
     
     # Filter courses based on keywords in Title
     recommended_courses = filter_courses_by_keywords(matcher.df_courses, all_keywords)
@@ -1250,4 +1242,5 @@ if __name__ == "__main__":
 # 3. Jalankan: streamlit run app.py
 
 # ========================================
+
 
