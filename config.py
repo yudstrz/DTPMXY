@@ -36,12 +36,6 @@ def get_gemini_url():
 # ========================================
 # GOOGLE CUSTOM SEARCH ENGINE (untuk Job Search)
 # ========================================
-# Cara setup:
-# 1. Buat CSE di: https://programmablesearchengine.google.com/
-# 2. Pilih "Search the entire web"
-# 3. Copy "Search engine ID" (cx)
-# 4. Paste di bawah
-
 GOOGLE_CSE_ID = "154c28487f39940d8"  # Ganti dengan CX Anda
 
 # Job sites yang akan di-search (opsional - untuk info saja)
@@ -117,11 +111,3 @@ def get_api_status() -> dict:
         'gemini': bool(GEMINI_API_KEY) and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE",
         'google_cse': bool(GOOGLE_CSE_ID) and GOOGLE_CSE_ID != "YOUR_GOOGLE_CSE_ID_HERE"
     }
-
-
-
-
-
-
-
-
