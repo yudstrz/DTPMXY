@@ -639,7 +639,6 @@ def render_learning_path_courses():
     
     # Display Learning Path
     if learning_path:
-        st.markdown("#### 📖 Learning Path Rekomendasi")
         if UTILS_LOADED:
             display_learning_path(learning_path)
         else:
