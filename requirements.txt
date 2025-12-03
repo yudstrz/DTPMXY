@@ -1,0 +1,23 @@
+# Core Streamlit
+streamlit
+
+# Data Processing
+pandas
+numpy
+openpyxl
+
+# AI & Machine Learning
+sentence-transformers
+faiss-cpu
+scikit-learn
+torch
+
+# Document Processing (untuk CV upload)
+PyPDF2
+python-docx
+
+# Visualization (opsional, untuk skill gap chart)
+plotly
+
+# Utilities
+python-dateutil
