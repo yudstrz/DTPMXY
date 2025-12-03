@@ -27,7 +27,7 @@ SHEET_COURSE = "Course_Maxy"  # Sheet untuk course manual
 # 🤖 KONFIGURASI GEMINI API
 # ========================================
 GEMINI_API_KEY = "AIzaSyAkYKjimWX4iRbsmPpNz9FayGf-0XJ6eAY"
-GEMINI_MODEL = "gemini-1.5-flash-latest"
+GEMINI_MODEL = "gemini-flash-latest"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key=API_KEY"
 
 def get_gemini_url():
@@ -117,6 +117,7 @@ def get_api_status() -> dict:
         'gemini': bool(GEMINI_API_KEY) and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE",
         'google_cse': bool(GOOGLE_CSE_ID) and GOOGLE_CSE_ID != "YOUR_GOOGLE_CSE_ID_HERE"
     }
+
 
 
 
