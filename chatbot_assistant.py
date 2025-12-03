@@ -10,13 +10,16 @@ import json
 from typing import List, Dict, Optional
 from datetime import datetime
 
+from config import GEMINI_API_KEY, GEMINI_MODEL
+
+
 class CareerChatbot:
     """AI Career Assistant menggunakan Gemini API"""
     
-    def __init__(self, api_key: str, model: str = "gemini-latest-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-flash-latest"):
         self.api_key = api_key
         self.model = model
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key=API_KEY"
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
         
         # Token limits untuk efisiensi
         self.MAX_INPUT_TOKENS = 4000  # Batas input untuk konteks
@@ -178,14 +181,8 @@ Gaya: Profesional namun ramah, seperti career mentor."""
         return suggestions
 
 
-# ========================================
-# STREAMLIT UI COMPONENT
-# ========================================
-
 def render_career_chatbot():
     """Render chatbot UI di Streamlit"""
-    
-    from config import GEMINI_API_KEY, GEMINI_MODEL
     
     st.markdown("### 💬 Career Assistant AI")
     st.caption("Tanya apapun tentang karir, lowongan, atau pengembangan skill!")
@@ -308,22 +305,3 @@ def render_career_chatbot():
         - ✅ Sistem prompt ringkas
         - ✅ Response dibatasi 150 kata
         """)
-
-
-# ========================================
-# EXAMPLE USAGE
-# ========================================
-
-if __name__ == "__main__":
-    st.set_page_config(page_title="Career Chatbot Demo", page_icon="💬")
-    
-    # Mock session state untuk testing
-    if 'mapped_okupasi_id' not in st.session_state:
-        st.session_state.mapped_okupasi_id = "OKP.001"
-        st.session_state.mapped_okupasi_nama = "Data Scientist"
-        st.session_state.skill_gap = "Python, Machine Learning, SQL"
-        st.session_state.form_lokasi = "Jakarta"
-    
-
-    render_career_chatbot()
-
