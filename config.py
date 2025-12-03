@@ -26,21 +26,12 @@ SHEET_COURSE = "Course_Maxy"  # Sheet untuk course manual
 # ========================================
 # 🤖 KONFIGURASI GEMINI API
 # ========================================
-import requests
-
 GEMINI_API_KEY = "AIzaSyAkYKjimWX4iRbsmPpNz9FayGf-0XJ6eAY"
 GEMINI_MODEL = "gemini-flash-latest"
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-
-payload = {
-    "contents": [
-        {"parts": [{"text": "Hello, Gemini!"}]}
-    ]
-}
-
-response = requests.post(url, json=payload)
-print(response.json())
+def get_gemini_url():
+    return f"{GEMINI_BASE_URL}/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
 # ========================================
 # GOOGLE CUSTOM SEARCH ENGINE (untuk Job Search)
@@ -126,6 +117,7 @@ def get_api_status() -> dict:
         'gemini': bool(GEMINI_API_KEY) and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE",
         'google_cse': bool(GOOGLE_CSE_ID) and GOOGLE_CSE_ID != "YOUR_GOOGLE_CSE_ID_HERE"
     }
+
 
 
 
