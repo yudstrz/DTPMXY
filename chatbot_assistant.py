@@ -16,7 +16,7 @@ class CareerChatbot:
     def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
         self.api_key = api_key
         self.model = model
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key=API_KEY"
         
         # Token limits untuk efisiensi
         self.MAX_INPUT_TOKENS = 4000  # Batas input untuk konteks
@@ -324,4 +324,5 @@ if __name__ == "__main__":
         st.session_state.skill_gap = "Python, Machine Learning, SQL"
         st.session_state.form_lokasi = "Jakarta"
     
+
     render_career_chatbot()
