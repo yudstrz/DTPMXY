@@ -33,7 +33,7 @@ GEMINI_API_KEY = "AIzaSyCR8xgDIv5oYBaDmMyuGGWjqpFi7U8SGA4"
 
 # 2. Model Settings
 # Menggunakan model Flash yang cepat dan hemat biaya
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 
 # 3. Base URL
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -122,4 +122,5 @@ def get_api_status() -> dict:
         'gemini': bool(GEMINI_API_KEY) and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE",
         'google_cse': bool(GOOGLE_CSE_ID) and GOOGLE_CSE_ID != "YOUR_GOOGLE_CSE_ID_HERE"
     }
+
 
