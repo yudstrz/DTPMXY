@@ -1,10 +1,3 @@
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 1/5: Import, Configuration, dan Setup Awal
-
-Profil Talenta + Career Assistant (Learning Path + Courses + Jobs + AI Chat)
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -163,12 +156,6 @@ init_session_state()
 # CONTINUE TO PART 2/5
 # Part 2 akan berisi Helper Functions & CV Processing
 # ========================================
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 2/5: Helper Functions & CV Processing
-Lanjutan dari Part 1
-"""
-
 # ========================================
 # HELPER FUNCTIONS
 # ========================================
@@ -392,12 +379,6 @@ def init_matcher():
 # CONTINUE TO PART 3/5
 # Part 3 akan berisi Sidebar & Profil Talenta Page
 # ========================================
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 3/5: Sidebar Navigation & Profil Talenta Page
-Lanjutan dari Part 2
-"""
-
 # ========================================
 # SIDEBAR NAVIGATION
 # ========================================
@@ -532,12 +513,6 @@ def page_profil_talenta():
                     st.info("💡 Lanjut ke **Career Assistant** untuk rekomendasi pelatihan & lowongan.")
                 else:
                     st.error("❌ Gagal memetakan profil. Pastikan data PON sudah benar.")
-
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 4/5: Career Assistant - SKKNI Info, Learning Path & Courses
-Lanjutan dari Part 3
-"""
 
 # ========================================
 # PAGE 2: CAREER ASSISTANT
@@ -800,11 +775,6 @@ def display_courses_table(courses):
                 "URL": st.column_config.LinkColumn("URL", width="small")
             }
         )
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 4/5: Career Assistant - SKKNI Info, Learning Path & Courses
-Lanjutan dari Part 3
-"""
 
 # ========================================
 # PAGE 2: CAREER ASSISTANT
@@ -1058,17 +1028,6 @@ def display_courses_table(courses):
 # CONTINUE TO PART 5/5
 # Part 5 akan berisi Job Search & AI Chat + Main Router
 # ========================================
-
-# ========================================
-# CONTINUE TO PART 5/5
-# Part 5 akan berisi Job Search & AI Chat + Main Router
-# ========================================
-"""
-DIGITAL TALENT PLATFORM - app.py
-Part 5/5: Job Search, AI Career Chat, Main Router & Footer
-Lanjutan dari Part 4 - FINAL PART
-"""
-
 # ========================================
 # JOB SEARCH TAB
 # ========================================
@@ -1293,4 +1252,5 @@ if __name__ == "__main__":
 # 1. Copy semua 5 part secara berurutan ke dalam satu file app.py
 # 2. Pastikan semua dependencies terinstall
 # 3. Jalankan: streamlit run app.py
+
 # ========================================
