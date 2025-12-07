@@ -1,23 +1,15 @@
-# Core Streamlit
-streamlit
 
-# Data Processing
+# RSS Feed Job Matching Dependencies
+feedparser
+beautifulsoup4
+lxml
+
+# Existing Dependencies (jika belum terinstall)
+streamlit
 pandas
 numpy
-openpyxl
-
-# AI & Machine Learning
-sentence-transformers
-faiss-cpu
-scikit-learn
-torch
-
-# Document Processing (untuk CV upload)
 PyPDF2
 python-docx
-
-# Visualization (opsional, untuk skill gap chart)
-plotly
-
-# Utilities
-python-dateutil
+faiss-cpu
+sentence-transformers
+openpyxl
