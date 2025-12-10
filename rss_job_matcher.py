@@ -440,7 +440,7 @@ def render_rss_job_recommendations(
         matched_jobs, debug_info = process_jobs_with_profile(
             user_skills=search_skills, # Use KUK Keywords
             user_occupations=user_occupations,
-            unit_kompetensi="", # Ignore unit kompetensi as requested ("hanya berdasarkan Okupasi dan Keywords KUK")
+            unit_kompetensi=unit_kompetensi, # Re-enable unit kompetensi
             max_results=50,
             show_debug=show_debug,
             silent_mode=silent_mode
