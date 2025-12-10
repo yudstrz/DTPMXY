@@ -430,17 +430,26 @@ def render_rss_job_recommendations(
         st.error("❌ Tidak dapat mencari lowongan tanpa okupasi!")
         return
     
-    # Use KUK Keywords for searching instead of CV SKills
+    # Use KUK Keywords AND user CV skills for searching
     search_skills = []
+    
+    # 1. Add CV Skills
+    if user_skills:
+        search_skills.extend(user_skills)
+        
+    # 2. Add KUK Keywords
     if okupasi_info and 'kuk_keywords' in okupasi_info:
-        search_skills = okupasi_info['kuk_keywords']
+        search_skills.extend(okupasi_info['kuk_keywords'])
+    
+    # Deduplicate
+    search_skills = list(dict.fromkeys(search_skills))
     
     # Fetch and process jobs (silent or verbose based on mode)
-    with st.spinner("🔍 Mencari lowongan kerja yang sesuai..."):
+    with st.spinner(f"🔍 Mencari lowongan dengan {len(search_skills)} keywords..."):
         matched_jobs, debug_info = process_jobs_with_profile(
-            user_skills=search_skills, # Use KUK Keywords
+            user_skills=search_skills, # Use Combined Skills
             user_occupations=user_occupations,
-            unit_kompetensi=unit_kompetensi, # Re-enable unit kompetensi
+            unit_kompetensi=unit_kompetensi, 
             max_results=50,
             show_debug=show_debug,
             silent_mode=silent_mode

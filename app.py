@@ -173,7 +173,9 @@ def normalize_text(text: str) -> str:
 def extract_skill_tokens(text: str) -> list:
     """Extract skill tokens from text"""
     text = normalize_text(text).lower()
-    parts = re.split(r"[,;/\\|]+", text)
+    
+    # Split by delimiters including bullet points and newlines
+    parts = re.split(r"[,;/\\|•\n\t]+", text)
     
     # Common stopwords to exclude
     stopwords = {
@@ -182,12 +184,27 @@ def extract_skill_tokens(text: str) -> list:
         'dan', 'di', 'ke', 'dari', 'yang', 'ini', 'itu', 'pada', 'untuk', 'dengan'
     }
     
-    tokens = [
-        p.strip() for p in parts 
-        if p.strip() 
-        and len(p.strip()) >= 2
-        and p.strip().lower() not in stopwords
-    ]
+    tokens = []
+    for p in parts:
+        clean_p = p.strip()
+        if not clean_p:
+            continue
+            
+        # 1. Length check (char)
+        if len(clean_p) < 2:
+            continue
+            
+        # 2. Stopword check (exact match)
+        if clean_p.lower() in stopwords:
+            continue
+            
+        # 3. Word count check (heuristic for "sentence vs skill")
+        # Skills usually don't have > 4 words (e.g. "Google Cloud Platform Associate Engineer")
+        if len(clean_p.split()) > 5:
+            continue
+            
+        tokens.append(clean_p)
+        
     return list(dict.fromkeys(tokens))
 
 def display_learning_path_fallback(learning_path):
