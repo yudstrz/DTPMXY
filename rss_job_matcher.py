@@ -30,8 +30,7 @@ def clean_html(raw_html: str) -> str:
         cleaned = soup.get_text(separator=" ", strip=True)
         cleaned = re.sub(r"\s+", " ", cleaned)
         return cleaned.lower()
-    except Exception as e:
-        st.warning(f"Error cleaning HTML: {e}")
+    except Exception:
         return str(raw_html).lower()
 
 
@@ -52,7 +51,84 @@ def match_keywords(text: str, keywords: List[str]) -> List[str]:
 
 
 # =====================================================================================
-# RSS FETCHING WITH DEBUG
+# RSS FETCHING (SILENT MODE)
+# =====================================================================================
+
+def fetch_all_rss_silent(feeds: List[str] = RSS_FEEDS) -> tuple:
+    """Fetch all jobs from RSS feeds silently (no status messages)"""
+    all_jobs = []
+    debug_info = {
+        'total_feeds': len(feeds),
+        'successful_feeds': 0,
+        'failed_feeds': 0,
+        'total_entries': 0,
+        'feed_details': []
+    }
+    
+    for url in feeds:
+        feed_info = {
+            'url': url,
+            'status': 'pending',
+            'entries': 0,
+            'error': None
+        }
+        
+        try:
+            # Parse feed (silent)
+            feed = feedparser.parse(url)
+            
+            # Check for errors
+            if hasattr(feed, 'bozo') and feed.bozo:
+                feed_info['error'] = str(getattr(feed, 'bozo_exception', 'Unknown error'))
+                feed_info['status'] = 'error'
+            else:
+                feed_info['status'] = 'success'
+            
+            # Get entries
+            entries_count = len(feed.entries)
+            feed_info['entries'] = entries_count
+            debug_info['total_entries'] += entries_count
+            
+            if entries_count == 0:
+                feed_info['status'] = 'empty'
+            else:
+                debug_info['successful_feeds'] += 1
+            
+            # Extract jobs
+            for entry in feed.entries:
+                description = ""
+                
+                # Try multiple fields for description
+                if hasattr(entry, "summary"):
+                    description = entry.summary
+                elif hasattr(entry, "description"):
+                    description = entry.description
+                elif hasattr(entry, "content") and len(entry.content) > 0:
+                    description = entry.content[0].value
+                
+                job = {
+                    "source": url.split("/")[2],
+                    "title": getattr(entry, "title", "No Title"),
+                    "link": getattr(entry, "link", "#"),
+                    "description_html": description,
+                    "published": getattr(entry, "published", "Unknown date")
+                }
+                
+                all_jobs.append(job)
+        
+        except Exception as e:
+            feed_info['status'] = 'failed'
+            feed_info['error'] = str(e)
+            debug_info['failed_feeds'] += 1
+        
+        debug_info['feed_details'].append(feed_info)
+        time.sleep(0.3)  # Small delay between requests
+    
+    return all_jobs, debug_info
+
+
+# =====================================================================================
+# RSS FETCHING WITH DEBUG (VERBOSE MODE)
 # =====================================================================================
 
 def fetch_all_rss_debug(feeds: List[str] = RSS_FEEDS) -> tuple:
@@ -142,18 +218,22 @@ def process_jobs_with_profile(
     user_occupations: List[str],
     unit_kompetensi: str = "",
     max_results: int = 50,
-    show_debug: bool = True
+    show_debug: bool = False,
+    silent_mode: bool = True
 ) -> tuple:
     """
     Process jobs and match with user profile
     Returns: (matched_jobs, debug_info)
     """
     
-    # Fetch jobs from RSS feeds
-    raw_jobs, fetch_debug = fetch_all_rss_debug()
+    # Fetch jobs from RSS feeds (silent or verbose)
+    if silent_mode:
+        raw_jobs, fetch_debug = fetch_all_rss_silent()
+    else:
+        raw_jobs, fetch_debug = fetch_all_rss_debug()
     
-    # Show fetch statistics
-    if show_debug:
+    # Show fetch statistics (only if debug mode)
+    if show_debug and not silent_mode:
         st.info(f"""
         **📊 Fetch Statistics:**
         - Total feeds checked: {fetch_debug['total_feeds']}
@@ -163,7 +243,8 @@ def process_jobs_with_profile(
         """)
     
     if not raw_jobs:
-        st.warning("⚠️ Tidak ada job yang berhasil di-fetch dari RSS feeds")
+        if not silent_mode:
+            st.warning("⚠️ Tidak ada job yang berhasil di-fetch dari RSS feeds")
         return [], fetch_debug
     
     # Prepare keywords for matching
@@ -178,22 +259,27 @@ def process_jobs_with_profile(
     # Remove duplicates and empty strings
     all_keywords = [k for k in list(set(all_keywords)) if k]
     
-    if show_debug:
+    # Show search info (only if debug mode)
+    if show_debug and not silent_mode:
         st.info(f"🔍 Searching with {len(all_keywords)} keywords: {', '.join(all_keywords[:10])}")
     
     results = []
     processed_count = 0
     matched_count = 0
     
-    # Create progress bar
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    # Create progress bar only if not silent
+    if not silent_mode:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
     
     for idx, job in enumerate(raw_jobs):
         processed_count += 1
-        progress = (idx + 1) / len(raw_jobs)
-        progress_bar.progress(progress)
-        status_text.text(f"Processing job {idx + 1}/{len(raw_jobs)}: {job['title'][:50]}...")
+        
+        # Update progress (only if not silent)
+        if not silent_mode:
+            progress = (idx + 1) / len(raw_jobs)
+            progress_bar.progress(progress)
+            status_text.text(f"Processing job {idx + 1}/{len(raw_jobs)}: {job['title'][:50]}...")
         
         # Clean description
         cleaned_desc = clean_html(job["description_html"])
@@ -236,9 +322,10 @@ def process_jobs_with_profile(
                 "matched_keywords_count": len(matched_in_title) + len(matched_in_desc)
             })
     
-    # Clear progress indicators
-    progress_bar.empty()
-    status_text.empty()
+    # Clear progress indicators (only if not silent)
+    if not silent_mode:
+        progress_bar.empty()
+        status_text.empty()
     
     # Sort by match score
     results = sorted(results, key=lambda x: x["match_score"], reverse=True)
@@ -248,7 +335,8 @@ def process_jobs_with_profile(
     fetch_debug['matched_jobs'] = matched_count
     fetch_debug['match_rate'] = f"{(matched_count/processed_count*100):.1f}%" if processed_count > 0 else "0%"
     
-    if show_debug:
+    # Show completion stats (only if debug mode and not silent)
+    if show_debug and not silent_mode:
         st.success(f"""
         **✅ Processing Complete:**
         - Processed: {processed_count} jobs
@@ -267,11 +355,12 @@ def render_rss_job_recommendations(
     user_skills: List[str],
     okupasi_nama: str,
     unit_kompetensi: str = "",
-    okupasi_info: Dict = None
+    okupasi_info: Dict = None,
+    silent_mode: bool = True
 ):
     """Render RSS job recommendations in Streamlit"""
     
-    st.markdown("### 🌐 Remote Job Recommendations (RSS Feeds)")
+    st.markdown("### 🌐 Remote Job Recommendations")
     st.caption("Lowongan kerja remote dari berbagai platform internasional")
     
     # Debug mode toggle
@@ -285,7 +374,7 @@ def render_rss_job_recommendations(
             user_occupations.append(area_fungsi)
     
     # Show search criteria
-    with st.expander("🔍 Kriteria Pencarian", expanded=True):
+    with st.expander("🔍 Kriteria Pencarian", expanded=False):
         col1, col2 = st.columns(2)
         
         with col1:
@@ -318,17 +407,18 @@ def render_rss_job_recommendations(
         st.info("💡 Pastikan Anda sudah mengisi profil dengan lengkap di tab 'Profil Talenta'")
         return
     
-    # Fetch and process jobs
-    with st.spinner("🔄 Mengambil dan memproses lowongan kerja..."):
+    # Fetch and process jobs (silent or verbose based on mode)
+    with st.spinner("🔍 Mencari lowongan kerja yang sesuai..."):
         matched_jobs, debug_info = process_jobs_with_profile(
             user_skills=user_skills,
             user_occupations=user_occupations,
             unit_kompetensi=unit_kompetensi,
             max_results=50,
-            show_debug=show_debug
+            show_debug=show_debug,
+            silent_mode=silent_mode
         )
     
-    # Show debug info
+    # Show debug info (only if requested)
     if show_debug:
         with st.expander("🐛 Debug Information", expanded=False):
             st.json(debug_info)
@@ -352,7 +442,7 @@ def render_rss_job_recommendations(
             4. Gunakan tab "Job Portals" untuk alternatif pencarian
             """)
         
-        # Show what was searched
+        # Show what was searched (only if debug)
         if show_debug:
             st.info(f"Searched with: {', '.join(user_skills[:10])} | {', '.join(user_occupations)}")
         
