@@ -426,17 +426,21 @@ def render_rss_job_recommendations(
         #         st.warning("⚠️ Tidak ada skills")
     
     # Validation
-    if not user_skills and not user_occupations:
-        st.error("❌ Tidak dapat mencari lowongan tanpa skills atau okupasi!")
-        st.info("💡 Pastikan Anda sudah mengisi profil dengan lengkap di tab 'Profil Talenta'")
+    if not okupasi_nama:
+        st.error("❌ Tidak dapat mencari lowongan tanpa okupasi!")
         return
+    
+    # Use KUK Keywords for searching instead of CV SKills
+    search_skills = []
+    if okupasi_info and 'kuk_keywords' in okupasi_info:
+        search_skills = okupasi_info['kuk_keywords']
     
     # Fetch and process jobs (silent or verbose based on mode)
     with st.spinner("🔍 Mencari lowongan kerja yang sesuai..."):
         matched_jobs, debug_info = process_jobs_with_profile(
-            user_skills=user_skills,
+            user_skills=search_skills, # Use KUK Keywords
             user_occupations=user_occupations,
-            unit_kompetensi=unit_kompetensi,
+            unit_kompetensi="", # Ignore unit kompetensi as requested ("hanya berdasarkan Okupasi dan Keywords KUK")
             max_results=50,
             show_debug=show_debug,
             silent_mode=silent_mode
