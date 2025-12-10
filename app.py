@@ -174,7 +174,20 @@ def extract_skill_tokens(text: str) -> list:
     """Extract skill tokens from text"""
     text = normalize_text(text).lower()
     parts = re.split(r"[,;/\\|]+", text)
-    tokens = [p.strip() for p in parts if p.strip() and len(p.strip()) >= 2]
+    
+    # Common stopwords to exclude
+    stopwords = {
+        'in', 'at', 'on', 'of', 'and', 'or', 'the', 'a', 'an', 'to', 'for', 'with', 'by', 
+        'from', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had',
+        'dan', 'di', 'ke', 'dari', 'yang', 'ini', 'itu', 'pada', 'untuk', 'dengan'
+    }
+    
+    tokens = [
+        p.strip() for p in parts 
+        if p.strip() 
+        and len(p.strip()) >= 2
+        and p.strip().lower() not in stopwords
+    ]
     return list(dict.fromkeys(tokens))
 
 def display_learning_path_fallback(learning_path):

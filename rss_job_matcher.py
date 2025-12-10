@@ -43,9 +43,20 @@ def match_keywords(text: str, keywords: List[str]) -> List[str]:
     text_lower = text.lower()
     
     for keyword in keywords:
-        keyword_lower = keyword.lower().strip()
-        if keyword_lower and keyword_lower in text_lower:
-            found.append(keyword)
+        keyword_clean = keyword.lower().strip()
+        if not keyword_clean:
+            continue
+            
+        # Escape special strings and use word boundaries
+        # Use regex to find whole words only
+        try:
+            pattern = r'\b' + re.escape(keyword_clean) + r'\b'
+            if re.search(pattern, text_lower):
+                found.append(keyword)
+        except re.error:
+            # Fallback for complex chars
+            if keyword_clean in text_lower:
+                found.append(keyword)
     
     return list(set(found))  # Remove duplicates
 
