@@ -280,17 +280,37 @@ def display_learning_path(learning_path: List[Dict]):
         st.success("✅ Tidak ada skill gap yang signifikan!")
         return
     
-    st.markdown("### 📚 Learning Path Rekomendasi")
+    # st.markdown("### 📚 Learning Path Rekomendasi") # Header removed
     
     for phase in learning_path:
-        with st.expander(f"**{phase['title']}** ({phase['estimated_duration']})", expanded=(phase['phase']==1)):
-            st.markdown(f"**Focus:** {phase['focus']}")
-            st.markdown("**Skills to Learn:**")
+        p_num = phase['phase']
+        
+        # Determine container style/color based on phase
+        if p_num == 1:
+            container_func = st.info  # Blue for Foundation
+            icon = "🎯"
+        elif p_num == 2:
+            container_func = st.success  # Green for Intermediate
+            icon = "📈"
+        else:
+            container_func = st.warning  # Orange for Advanced
+            icon = "🚀"
             
-            for skill in phase['skills']:
-                st.markdown(f"- 🎯 **{skill.title()}**")
+        with st.container():
+            st.markdown(f"#### {icon} {phase['title']}")
             
-            st.info(f"💡 Estimasi waktu: {phase['estimated_duration']}")
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                 st.markdown(f"**Fokus:** {phase['focus']}")
+            with col2:
+                 st.caption(f"⏱️ **Estimasi:** {phase['estimated_duration']}")
+            
+            # Use the color box for skills
+            with container_func("Skills to Learn"):
+                skills_text = ", ".join([f"**{s.title()}**" for s in phase['skills']])
+                st.markdown(skills_text)
+            
+            st.write("") # Spacer
 
 
 def display_skill_gap_chart(gap_analysis: Dict):

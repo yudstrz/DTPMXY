@@ -375,31 +375,44 @@ def render_rss_job_recommendations(
     
     # Show search criteria
     with st.expander("🔍 Kriteria Pencarian", expanded=False):
-        col1, col2 = st.columns(2)
+        # col1, col2 = st.columns(2)
         
-        with col1:
-            st.markdown("**📋 Okupasi:**")
-            if user_occupations:
-                for occ in user_occupations:
-                    st.markdown(f"- {occ}")
-            else:
-                st.warning("⚠️ Tidak ada okupasi")
-            
-            st.markdown("**🎯 Unit Kompetensi:**")
-            if unit_kompetensi:
-                st.markdown(f"- {unit_kompetensi}")
-            else:
-                st.info("Tidak ada unit kompetensi")
+        # with col1:
+        st.markdown("**📋 Okupasi:**")
+        if user_occupations:
+            for occ in user_occupations:
+                st.markdown(f"- {occ}")
+        else:
+            st.warning("⚠️ Tidak ada okupasi")
         
-        with col2:
-            st.markdown("**💡 Skills yang Dicari:**")
-            if user_skills:
-                for skill in user_skills[:15]:
-                    st.markdown(f"- {skill}")
-                if len(user_skills) > 15:
-                    st.caption(f"... dan {len(user_skills) - 15} skills lainnya")
+        if unit_kompetensi:
+            st.markdown(f"- {unit_kompetensi}")
+        else:
+            st.info("Tidak ada unit kompetensi")
+
+        st.markdown("**🔑 Keywords KUK:**")
+        if okupasi_info and 'kuk_keywords' in okupasi_info:
+            keywords = okupasi_info['kuk_keywords']
+            if keywords:
+                # Show first 10 keywords
+                for kw in keywords[:10]:
+                    st.markdown(f"- {kw}")
+                if len(keywords) > 10:
+                    st.caption(f"... dan {len(keywords) - 10} lainnya")
             else:
-                st.warning("⚠️ Tidak ada skills")
+                st.info("Tidak ada keywords KUK")
+        else:
+            st.info("Data keyword tidak tersedia")
+        
+        # with col2:
+        #     st.markdown("**💡 Skills yang Dicari:**")
+        #     if user_skills:
+        #         for skill in user_skills[:15]:
+        #             st.markdown(f"- {skill}")
+        #         if len(user_skills) > 15:
+        #             st.caption(f"... dan {len(user_skills) - 15} skills lainnya")
+        #     else:
+        #         st.warning("⚠️ Tidak ada skills")
     
     # Validation
     if not user_skills and not user_occupations:

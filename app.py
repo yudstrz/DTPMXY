@@ -143,7 +143,8 @@ def init_session_state():
         'okupasi_info': {},
         'skill_gap': "",
         'profil_teks': "",
-        'learning_path': []
+        'learning_path': [],
+        'recommendations': []
     }
     
     for key, value in defaults.items():
@@ -317,12 +318,12 @@ def initialize_semantic_search(excel_path: str, sheet_name: str):
             traceback.print_exc()
             return None, None, None
 
-def map_profile_semantically(profile_text: str) -> tuple:
-    """Map profile to SKKNI using semantic search"""
+def map_profile_semantically(profile_text: str, k: int = 3) -> list:
+    """Map profile to SKKNI using semantic search, returning top k results"""
     model, index, df_pon = initialize_semantic_search(EXCEL_PATH, SHEET_PON)
     
     if model is None or index is None:
-        return None, None, 0, "Gagal memuat semantic engine."
+        return []
     
     try:
         # Encode query
@@ -330,34 +331,41 @@ def map_profile_semantically(profile_text: str) -> tuple:
         faiss.normalize_L2(query_vector)
         
         # Search
-        scores, indices = index.search(query_vector, k=1)
+        scores, indices = index.search(query_vector, k=k)
         
-        idx = indices[0][0]
-        best_score = scores[0][0]
-        
-        data = df_pon.iloc[idx]
-        
-        # Calculate skill gap
-        required_keywords_raw = str(data.get('Kuk_Keywords', '')).lower().split()
-        required_keywords = set(k for k in required_keywords_raw if k and len(k) > 2)
-        
+        results = []
         user_keywords = set(extract_skill_tokens(profile_text))
         
-        missing_skills = [s.title() for s in required_keywords if s not in user_keywords]
+        for i in range(k):
+            if i >= len(indices[0]):
+                break
+                
+            idx = indices[0][i]
+            score = scores[0][i]
+            
+            data = df_pon.iloc[idx]
+            
+            # Calculate skill gap
+            required_keywords_raw = str(data.get('Kuk_Keywords', '')).lower().split()
+            required_keywords = set(k for k in required_keywords_raw if k and len(k) > 2)
+            
+            missing_skills = [s.title() for s in required_keywords if s not in user_keywords]
+            
+            skill_gap_text = ", ".join(sorted(missing_skills)[:5]) if missing_skills else "Tidak ada gap signifikan"
+            
+            results.append({
+                "id": data.get('OkupasiID', 'N/A'),
+                "nama": data.get('Okupasi', 'N/A'),
+                "score": float(score),
+                "gap": skill_gap_text
+            })
         
-        skill_gap_text = ", ".join(sorted(missing_skills)[:5]) if missing_skills else "Tidak ada gap signifikan"
-        
-        return (
-            data.get('OkupasiID', 'N/A'),
-            data.get('Okupasi', 'N/A'),
-            best_score,
-            skill_gap_text
-        )
+        return results
     
     except Exception as e:
         st.error(f"Error saat mapping profil: {e}")
         traceback.print_exc()
-        return None, None, 0, "Terjadi kesalahan internal."
+        return []
 
 # ========================================
 # MATCHER INITIALIZATION
@@ -490,29 +498,70 @@ def page_profil_talenta():
             st.session_state.form_cv_text = raw_cv
             st.session_state.profil_teks = raw_cv
             
+            st.session_state.profil_teks = raw_cv
+            
             with st.spinner("🔍 Mapping ke SKKNI..."):
-                okupasi_id, okupasi_nama, skor, gap = map_profile_semantically(raw_cv)
+                recommendations = map_profile_semantically(raw_cv, k=3)
+                st.session_state.recommendations = recommendations
                 
-                if okupasi_id:
-                    st.session_state.mapped_okupasi_id = okupasi_id
-                    st.session_state.mapped_okupasi_nama = okupasi_nama
-                    st.session_state.skill_gap = gap
+                # Reset selection if re-mapping
+                if recommendations:
+                    st.success("✅ Profil berhasil dipetakan! Silakan pilih okupasi di bawah.")
+                else:
+                    st.error("❌ Gagal memetakan profil. Pastikan data PON sudah benar.")
+
+    # Display Recommendations (Persistent)
+    if st.session_state.get('recommendations'):
+        st.markdown("### 🎯 Rekomendasi Okupasi")
+        st.markdown("Pilih salah satu okupasi yang paling sesuai dengan profil Anda:")
+        
+        recs = st.session_state.recommendations
+        cols = st.columns(len(recs))
+        
+        for idx, (col, rec) in enumerate(zip(cols, recs)):
+            with col:
+                # Highlight if selected
+                is_selected = (st.session_state.mapped_okupasi_id == rec['id'])
+                border_style = "2px solid #667eea" if is_selected else "1px solid #2e3244"
+                bg_color = "#25293c" if is_selected else "#1c1f2b"
+                
+                st.markdown(f"""
+                <div style="
+                    background-color: {bg_color};
+                    border: {border_style};
+                    border-radius: 12px;
+                    padding: 16px;
+                    height: 100%;
+                    margin-bottom: 10px;
+                ">
+                    <h4 style="margin:0; color: #fff;">{rec['nama']}</h4>
+                    <p style="font-size: 0.8em; opacity: 0.7; margin: 4px 0;">ID: {rec['id']}</p>
+                    <div style="font-size: 1.2em; font-weight: bold; color: #4fd1c5; margin: 8px 0;">
+                        {rec['score']*100:.1f}% Match
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("Pilih Ini", key=f"select_{idx}", use_container_width=True):
+                    st.session_state.mapped_okupasi_id = rec['id']
+                    st.session_state.mapped_okupasi_nama = rec['nama']
+                    st.session_state.skill_gap = rec['gap']
                     
                     # Get full info
                     matcher = init_matcher()
                     if matcher:
-                        st.session_state.okupasi_info = matcher.get_okupasi_details(okupasi_id)
+                        st.session_state.okupasi_info = matcher.get_okupasi_details(rec['id'])
                     
-                    st.success("✅ Profil berhasil dipetakan!")
-                    
-                    col1, col2 = st.columns(2)
-                    col1.metric("Okupasi", okupasi_nama)
-                    col2.metric("Tingkat Kecocokan", f"{skor*100:.1f}%")
-                    
-                    st.warning(f"**Skill Gap:** {gap}")
-                    st.info("💡 Lanjut ke **Career Assistant** untuk rekomendasi pelatihan & lowongan.")
-                else:
-                    st.error("❌ Gagal memetakan profil. Pastikan data PON sudah benar.")
+                    st.rerun()
+                
+                with st.expander("Lihat Gap Skill"):
+                    st.caption(rec['gap'])
+
+    # Show Active Selection Info
+    if st.session_state.mapped_okupasi_id:
+        st.markdown("---")
+        st.success(f"**Terpilih: {st.session_state.mapped_okupasi_nama}**")
+        st.info("💡 Lanjut ke **Career Assistant** untuk rekomendasi pelatihan & lowongan.")
 
 # ========================================
 # PAGE 2: CAREER ASSISTANT
@@ -581,7 +630,7 @@ def render_skkni_info():
         with col2:
             st.markdown(f"**Area:** {okupasi_details.get('area_fungsi', 'N/A')}")
             st.markdown(f"**Unit:** {okupasi_details.get('unit_kompetensi', 'N/A')}")
-            st.markdown(f"**Level:** {okupasi_details.get('level', 'N/A')}")
+            # st.markdown(f"**Level:** {okupasi_details.get('level', 'N/A')}")
             
             with st.expander("📋 Keterampilan yang Dibutuhkan"):
                 skills = okupasi_details.get('kuk_keywords', [])
@@ -1164,13 +1213,13 @@ def render_job_search():
     # TAB 2: RSS FEED JOBS (FIXED)
     # ========================================
     with tab_rss:
-        st.info("🔄 Memuat modul RSS Job Matcher...")
+        # st.info("🔄 Memuat modul RSS Job Matcher...")
         
         try:
             # Import RSS job matcher
             from rss_job_matcher import render_rss_job_recommendations
             
-            st.success("✅ Modul RSS berhasil dimuat!")
+            # st.success("✅ Modul RSS berhasil dimuat!")
             
             # Get user skills from profile
             user_skills = extract_skill_tokens(st.session_state.profil_teks)
@@ -1180,7 +1229,7 @@ def render_job_search():
                 st.warning("⚠️ Tidak ada skills yang terdeteksi dari profil Anda")
                 st.info("💡 Pastikan Anda sudah mengisi CV/Deskripsi Diri dengan lengkap di tab 'Profil Talenta'")
             else:
-                st.info(f"✅ Terdeteksi {len(user_skills)} skills dari profil Anda")
+                pass # st.info(f"✅ Terdeteksi {len(user_skills)} skills dari profil Anda")
             
             # Get okupasi info
             okupasi_nama = st.session_state.mapped_okupasi_nama
