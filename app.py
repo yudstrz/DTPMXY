@@ -38,7 +38,6 @@ UTILS_LOADED = False
 try:
     from utils.skkni_matcher import (
         create_skkni_matcher,
-        display_learning_path,
         display_skill_gap_chart
     )
     UTILS_LOADED = True
@@ -207,13 +206,7 @@ def extract_skill_tokens(text: str) -> list:
         
     return list(dict.fromkeys(tokens))
 
-def display_learning_path_fallback(learning_path):
-    """Fallback display for learning path"""
-    for i, phase in enumerate(learning_path):
-        with st.expander(f"Phase {i+1}: {phase.get('title', 'N/A')}"):
-            skills = phase.get('skills', [])
-            if skills:
-                st.markdown(f"**Skills:** {', '.join(skills)}")
+
 
 def display_skill_gap_chart_fallback(gap_analysis):
     """Fallback display for skill gap"""
@@ -438,13 +431,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # System Status
-        st.markdown("### ⚙️ Status Sistem")
-        api_status = get_api_status()
-        
-        st.markdown(f"{'✅' if api_status.get('database', False) else '❌'} Database Excel")
-        st.markdown(f"{'✅' if api_status.get('gemini', False) else '⚠️'} Gemini AI")
-        st.markdown(f"{'✅' if api_status.get('google_cse', False) else '⚠️'} Google CSE")
+
         
         # Okupasi Info
         if st.session_state.mapped_okupasi_id:
@@ -613,7 +600,7 @@ def page_career_assistant():
     # Tabs
     tab1, tab2, tab3, tab4 = st.tabs([
         "🎯 SKKNI Info",
-        "📚 Learning Path & Courses",
+        "📚 Rekomendasi Courses",
         "💼 Job Search",
         "💬 AI Career Chat"
     ])
@@ -634,125 +621,39 @@ def page_career_assistant():
     with tab4:
         render_ai_career_chat()
 
-def render_skkni_info():
-    """Render SKKNI information and skill gap analysis"""
-    st.markdown("### 🎯 Okupasi Anda")
-    
-    matcher = init_matcher()
-    if matcher and st.session_state.okupasi_info:
-        okupasi_details = st.session_state.okupasi_info
-        
-        col1, col2 = st.columns([1, 2])
-        
-        with col1:
-            st.markdown(f"""
-            <div class='okupasi-card'>
-                <div style='font-size: 3em;'>👔</div>
-                <div style='font-size: 1.5em; font-weight: bold; margin-top: 10px;'>
-                    {okupasi_details.get('okupasi_nama', 'N/A')}
-                </div>
-                <div style='font-size: 0.9em; margin-top: 5px; opacity: 0.9;'>
-                    {okupasi_details.get('okupasi_id', 'N/A')}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"**Area:** {okupasi_details.get('area_fungsi', 'N/A')}")
-            st.markdown(f"**Unit:** {okupasi_details.get('unit_kompetensi', 'N/A')}")
-            # st.markdown(f"**Level:** {okupasi_details.get('level', 'N/A')}")
-            
-            with st.expander("📋 Keterampilan yang Dibutuhkan"):
-                skills = okupasi_details.get('kuk_keywords', [])
-                if skills:
-                    for i, skill in enumerate(skills, 1):
-                        st.markdown(f"{i}. {skill.title()}")
-                else:
-                    st.info("Tidak ada data keterampilan.")
-        
-        # Skill Gap Analysis
-        st.markdown("---")
-        st.markdown("### 📊 Skill Gap Analysis")
-        
-        user_skills = extract_skill_tokens(st.session_state.profil_teks)
-        gap_analysis = matcher.calculate_skill_gap(user_skills, st.session_state.mapped_okupasi_id)
-        
-        col_gap1, col_gap2 = st.columns(2)
-        
-        with col_gap1:
-            if UTILS_LOADED:
-                display_skill_gap_chart(gap_analysis)
-            else:
-                display_skill_gap_chart_fallback(gap_analysis)
-        
-        with col_gap2:
-            st.markdown("#### ✅ Skills Dimiliki")
-            if gap_analysis.get('owned_skills'):
-                for skill in gap_analysis['owned_skills'][:10]:
-                    st.markdown(f"- 🎯 {skill.title()}")
-            else:
-                st.info("Belum ada match.")
-            
-            st.markdown("#### ❌ Skills yang Perlu Dipelajari")
-            if gap_analysis.get('priority_skills'):
-                for skill in gap_analysis['priority_skills'][:5]:
-                    st.markdown(f"- 🔴 {skill.title()}")
-    else:
-        st.error("⚠️ Data okupasi tidak tersedia. Silakan periksa konfigurasi Anda.")
+
 
 def render_learning_path_courses():
     """Render learning path and course recommendations"""
     # Hapus judul utama ini
     # st.markdown("### 📚 Learning Path & Rekomendasi Course")
     
+def render_learning_path_courses():
+    """Render course recommendations only"""
+    st.markdown("### 📚 Rekomendasi Courses")
+    
     matcher = init_matcher()
     if not matcher:
-        st.error("⚠️ Tidak dapat membuat learning path. Matcher tidak tersedia.")
+        st.error("⚠️ Matcher tidak tersedia.")
         return
     
-    user_skills = extract_skill_tokens(st.session_state.profil_teks)
-    
-    # Generate Learning Path
-    learning_path = matcher.generate_learning_path(
-        st.session_state.mapped_okupasi_id,
-        user_skills
-    )
-    
-    st.session_state.learning_path = learning_path
-    
-    # Display Learning Path
-    if learning_path:
-        # Hapus atau ubah judul bagian learning path
-        # st.markdown("#### 📖 Learning Path Rekomendasi")
-        if UTILS_LOADED:
-            display_learning_path(learning_path)
-        else:
-            display_learning_path_fallback(learning_path)
-        st.markdown("---")
-    
-    # Display Recommended Courses
-    st.markdown("#### 🎓 Rekomendasi Course")
-    st.info(f"🔍 Mencari course berdasarkan: **{st.session_state.mapped_okupasi_nama}**")
-    
+    # Check if courses are available in DB
     if matcher.df_courses is None or matcher.df_courses.empty:
         st.warning(f"⚠️ Data course belum tersedia. Tambahkan sheet **'{SHEET_COURSE}'** di file Excel.")
         return
     
-    # Extract keywords ONLY from okupasi name
+    # Extract keywords
     okupasi_nama = st.session_state.mapped_okupasi_nama or ""
-    
-    # Split okupasi name into individual words as keywords
-    # Example: "Data Scientist" -> ["data", "scientist"]
     all_keywords = set(word.lower() for word in okupasi_nama.split() if word)
     
-    # Filter courses based on keywords in Title
+    # Filter courses
     recommended_courses = filter_courses_by_keywords(matcher.df_courses, all_keywords)
     
     if not recommended_courses:
-        st.warning("⚠️ Tidak ada course yang cocok ditemukan.")
-        st.info("💡 Menampilkan semua course yang tersedia:")
-        display_all_courses(matcher.df_courses)
+        # Empty State - No Fallback
+        st.info("ℹ️ Tidak ada rekomendasi course yang sesuai saat ini.")
     else:
+        # Success State - Show Cards
         st.success(f"🎯 Ditemukan {len(recommended_courses)} course yang relevan!")
         display_courses_table(recommended_courses)
 
@@ -782,66 +683,58 @@ def filter_courses_by_keywords(df_courses, keywords):
     
     return filtered_courses
 
-def display_all_courses(df_courses):
-    """Display all available courses in table format"""
-    if df_courses is None or df_courses.empty:
-        return
-    
-    # Select only required columns
-    display_df = df_courses[['CourseID', 'Title', 'Platform', 'Jenis', 'URL']].copy()
-    
-    # Display as table
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "CourseID": st.column_config.TextColumn("Course ID", width="small"),
-            "Title": st.column_config.TextColumn("Title", width="large"),
-            "Platform": st.column_config.TextColumn("Platform", width="medium"),
-            "Jenis": st.column_config.TextColumn("Jenis", width="small"),
-            "URL": st.column_config.LinkColumn("URL", width="small")
-        }
-    )
-    
-    st.caption(f"Total: {len(display_df)} courses")
 
 def display_courses_table(courses):
-    """Display recommended courses in card and table format"""
+    """Display recommended courses in card format"""
     # Display in expandable cards
+    display_columns = ['CourseID', 'Title', 'Platform', 'Jenis', 'URL', 'matched_keyword']
+    
+    # Custom CSS for cards
+    st.markdown("""
+    <style>
+    .course-card-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .course-card-meta {
+        font-size: 0.9rem;
+        color: #ddd;
+    }
+    .keyword-badge {
+        background-color: rgba(57, 255, 20, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        color: #39ff14;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Display in cards
     for i, course in enumerate(courses, 1):
-        with st.expander(f"🎓 {i}. {course['Title']}", expanded=(i <= 3)):
+        with st.container(border=True):
+            # Header
             col1, col2 = st.columns([3, 1])
-            
             with col1:
-                st.markdown(f"**Course ID:** {course['CourseID']}")
-                st.markdown(f"**Platform:** {course['Platform']}")
-                st.markdown(f"**Jenis:** {course['Jenis']}")
-                st.markdown(f"**Matched Keyword:** `{course['matched_keyword']}`")
-            
+                st.markdown(f"<div class='course-card-header'>{i}. {course['Title']}</div>", unsafe_allow_html=True)
+                
             with col2:
                 if course['URL'] and course['URL'] != '#':
                     st.link_button("🔗 Buka Course", course['URL'], use_container_width=True)
-    
-    st.markdown("---")
-    
-    # Also display as table for easy reference
-    with st.expander("📊 Lihat Semua dalam Tabel"):
-        df_display = pd.DataFrame(courses)
-        df_display = df_display[['CourseID', 'Title', 'Platform', 'Jenis', 'URL']]
-        
-        st.dataframe(
-            df_display,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "CourseID": st.column_config.TextColumn("Course ID", width="small"),
-                "Title": st.column_config.TextColumn("Title", width="large"),
-                "Platform": st.column_config.TextColumn("Platform", width="medium"),
-                "Jenis": st.column_config.TextColumn("Jenis", width="small"),
-                "URL": st.column_config.LinkColumn("URL", width="small")
-            }
-        )
+            
+            st.markdown("---")
+            
+            # Details
+            col_det1, col_det2 = st.columns(2)
+            
+            with col_det1:
+                st.markdown(f"**Course ID:** {course['CourseID']}")
+                st.markdown(f"**Platform:** {course['Platform']}")
+                
+            with col_det2:
+                st.markdown(f"**Jenis:** {course['Jenis']}")
+                st.markdown(f"**Matched Keyword:** <span class='keyword-badge'>{course['matched_keyword']}</span>", unsafe_allow_html=True)
 
 # ========================================
 # PAGE 2: CAREER ASSISTANT
@@ -910,7 +803,7 @@ def render_skkni_info():
         with col2:
             st.markdown(f"**Area:** {okupasi_details.get('area_fungsi', 'N/A')}")
             st.markdown(f"**Unit:** {okupasi_details.get('unit_kompetensi', 'N/A')}")
-            st.markdown(f"**Level:** {okupasi_details.get('level', 'N/A')}")
+            # Level removed as per request
             
             with st.expander("📋 Keterampilan yang Dibutuhkan"):
                 skills = okupasi_details.get('kuk_keywords', [])
@@ -950,59 +843,7 @@ def render_skkni_info():
     else:
         st.error("⚠️ Data okupasi tidak tersedia. Silakan periksa konfigurasi Anda.")
 
-def render_learning_path_courses():
-    """Render learning path and course recommendations"""
-    st.markdown("### 📚 Learning Path & Rekomendasi Course")
-    
-    matcher = init_matcher()
-    if not matcher:
-        st.error("⚠️ Tidak dapat membuat learning path. Matcher tidak tersedia.")
-        return
-    
-    user_skills = extract_skill_tokens(st.session_state.profil_teks)
-    
-    # Generate Learning Path
-    learning_path = matcher.generate_learning_path(
-        st.session_state.mapped_okupasi_id,
-        user_skills
-    )
-    
-    st.session_state.learning_path = learning_path
-    
-    # Display Learning Path
-    if learning_path:
-        st.markdown("#### 📖 Learning Path Rekomendasi")
-        if UTILS_LOADED:
-            display_learning_path(learning_path)
-        else:
-            display_learning_path_fallback(learning_path)
-        st.markdown("---")
-    
-    # Display Recommended Courses
-    st.markdown("#### 🎓 Rekomendasi Course")
-    st.info(f"🔍 Mencari course berdasarkan: **{st.session_state.mapped_okupasi_nama}**")
-    
-    if matcher.df_courses is None or matcher.df_courses.empty:
-        st.warning(f"⚠️ Data course belum tersedia. Tambahkan sheet **'{SHEET_COURSE}'** di file Excel.")
-        return
-    
-    # Extract keywords ONLY from okupasi name
-    okupasi_nama = st.session_state.mapped_okupasi_nama or ""
-    
-    # Split okupasi name into individual words as keywords
-    # Example: "Data Scientist" -> ["data", "scientist"]
-    all_keywords = set(word.lower() for word in okupasi_nama.split() if word)
-    
-    # Filter courses based on keywords in Title
-    recommended_courses = filter_courses_by_keywords(matcher.df_courses, all_keywords)
-    
-    if not recommended_courses:
-        st.warning("⚠️ Tidak ada course yang cocok ditemukan.")
-        st.info("💡 Menampilkan semua course yang tersedia:")
-        display_all_courses(matcher.df_courses)
-    else:
-        st.success(f"🎯 Ditemukan {len(recommended_courses)} course yang relevan!")
-        display_courses_table(recommended_courses)
+
 
 def filter_courses_by_keywords(df_courses, keywords):
     """Filter courses based on keywords in Title"""
@@ -1054,42 +895,7 @@ def display_all_courses(df_courses):
     
     st.caption(f"Total: {len(display_df)} courses")
 
-def display_courses_table(courses):
-    """Display recommended courses in card and table format"""
-    # Display in expandable cards
-    for i, course in enumerate(courses, 1):
-        with st.expander(f"🎓 {i}. {course['Title']}", expanded=(i <= 3)):
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                st.markdown(f"**Course ID:** {course['CourseID']}")
-                st.markdown(f"**Platform:** {course['Platform']}")
-                st.markdown(f"**Jenis:** {course['Jenis']}")
-                st.markdown(f"**Matched Keyword:** `{course['matched_keyword']}`")
-            
-            with col2:
-                if course['URL'] and course['URL'] != '#':
-                    st.link_button("🔗 Buka Course", course['URL'], use_container_width=True)
-    
-    st.markdown("---")
-    
-    # Also display as table for easy reference
-    with st.expander("📊 Lihat Semua dalam Tabel"):
-        df_display = pd.DataFrame(courses)
-        df_display = df_display[['CourseID', 'Title', 'Platform', 'Jenis', 'URL']]
-        
-        st.dataframe(
-            df_display,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "CourseID": st.column_config.TextColumn("Course ID", width="small"),
-                "Title": st.column_config.TextColumn("Title", width="large"),
-                "Platform": st.column_config.TextColumn("Platform", width="medium"),
-                "Jenis": st.column_config.TextColumn("Jenis", width="small"),
-                "URL": st.column_config.LinkColumn("URL", width="small")
-            }
-        )
+
 
 # ========================================
 # CONTINUE TO PART 5/5

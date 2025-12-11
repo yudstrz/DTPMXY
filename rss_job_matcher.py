@@ -224,6 +224,7 @@ def fetch_all_rss_debug(feeds: List[str] = RSS_FEEDS) -> tuple:
 # JOB MATCHING ENGINE
 # =====================================================================================
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def process_jobs_with_profile(
     user_skills: List[str],
     user_occupations: List[str],
@@ -374,8 +375,8 @@ def render_rss_job_recommendations(
     st.markdown("### 🌐 Remote Job Recommendations")
     st.caption("Lowongan kerja remote dari berbagai platform internasional")
     
-    # Debug mode toggle
-    show_debug = st.checkbox("🐛 Show Debug Info", value=False)
+    # Debug mode disabled
+    show_debug = False
     
     # Prepare occupation list
     user_occupations = [okupasi_nama] if okupasi_nama else []
@@ -384,48 +385,7 @@ def render_rss_job_recommendations(
         if area_fungsi and area_fungsi not in user_occupations:
             user_occupations.append(area_fungsi)
     
-    # Show search criteria
-    with st.expander("🔍 Kriteria Pencarian", expanded=False):
-        # col1, col2 = st.columns(2)
-        
-        # with col1:
-        st.markdown("**📋 Okupasi:**")
-        if user_occupations:
-            for occ in user_occupations:
-                st.markdown(f"- {occ}")
-        else:
-            st.warning("⚠️ Tidak ada okupasi")
-        
-        if unit_kompetensi:
-            st.markdown(f"- {unit_kompetensi}")
-        else:
-            st.info("Tidak ada unit kompetensi")
 
-        st.markdown("**🔑 Keywords KUK:**")
-        if okupasi_info and 'kuk_keywords' in okupasi_info:
-            keywords = okupasi_info['kuk_keywords']
-            if keywords:
-                # Show first 10 keywords
-                for kw in keywords[:10]:
-                    st.markdown(f"- {kw}")
-                if len(keywords) > 10:
-                    st.caption(f"... dan {len(keywords) - 10} lainnya")
-            else:
-                st.info("Tidak ada keywords KUK")
-        else:
-            st.info("Data keyword tidak tersedia")
-        
-        # with col2:
-        #     st.markdown("**💡 Skills yang Dicari:**")
-        #     if user_skills:
-        #         for skill in user_skills[:15]:
-        #             st.markdown(f"- {skill}")
-        #         if len(user_skills) > 15:
-        #             st.caption(f"... dan {len(user_skills) - 15} skills lainnya")
-        #     else:
-        #         st.warning("⚠️ Tidak ada skills")
-    
-    # Validation
     if not okupasi_nama:
         st.error("❌ Tidak dapat mencari lowongan tanpa okupasi!")
         return
@@ -455,10 +415,7 @@ def render_rss_job_recommendations(
             silent_mode=silent_mode
         )
     
-    # Show debug info (only if requested)
-    if show_debug:
-        with st.expander("🐛 Debug Information", expanded=False):
-            st.json(debug_info)
+
     
     # Check results
     if not matched_jobs:
@@ -480,8 +437,7 @@ def render_rss_job_recommendations(
             """)
         
         # Show what was searched (only if debug)
-        if show_debug:
-            st.info(f"Searched with: {', '.join(user_skills[:10])} | {', '.join(user_occupations)}")
+
         
         return
     
@@ -500,43 +456,101 @@ def render_rss_job_recommendations(
     
     st.markdown("---")
     
+    # Pagination Setup
+    if 'rss_jobs_page' not in st.session_state:
+        st.session_state.rss_jobs_page = 1
+    
+    items_per_page = 10
+    total_jobs = len(matched_jobs)
+    total_pages = (total_jobs + items_per_page - 1) // items_per_page
+    
+    # Ensure page is valid
+    if total_pages > 0 and st.session_state.rss_jobs_page > total_pages:
+        st.session_state.rss_jobs_page = 1
+        
+    start_idx = (st.session_state.rss_jobs_page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    
+    jobs_to_display = matched_jobs[start_idx:end_idx]
+
     # Display jobs in cards
-    for i, job in enumerate(matched_jobs, 1):
-        with st.expander(
-            f"**{i}. {job['title']}** (Score: {job['match_score']})",
-            expanded=(i <= 3)
-        ):
-            col_job1, col_job2 = st.columns([3, 1])
+    st.markdown("""
+    <style>
+    .job-card-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .job-card-meta {
+        font-size: 0.85rem;
+        color: #888;
+        margin-bottom: 0.8rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    for i, job in enumerate(jobs_to_display, start=start_idx + 1):
+        with st.container(border=True):
+            # Header Section
+            col_head1, col_head2 = st.columns([4, 1])
+            with col_head1:
+                st.markdown(f"<div class='job-card-header'>{i}. {job['title']}</div>", unsafe_allow_html=True)
+                st.caption(f"🚀 Source: {job['source']} • 📅 {job.get('published', 'Unknown')}")
             
-            with col_job1:
-                st.markdown(f"**Source:** `{job['source']}`")
-                st.markdown(f"**Published:** {job.get('published', 'Unknown')}")
-                st.markdown(f"**Match Score:** {job['match_score']} points")
+            with col_head2:
+                st.metric("Score", job['match_score'])
+            
+            st.markdown("---")
+            
+            # Content Section
+            col_body1, col_body2 = st.columns([3, 1])
+            
+            with col_body1:
+                # Description
+                st.markdown(f"**📝 Description:**")
+                st.caption(job['description_preview'])
                 
-                if job['matched_occupations']:
-                    st.markdown("**✅ Matched Occupations:**")
-                    st.markdown(", ".join([f"`{o}`" for o in job['matched_occupations']]))
-                
+                # Skills
                 if job['matched_skills']:
+                    st.write("") # Spacer
                     st.markdown("**🎯 Matched Skills:**")
-                    skills_display = job['matched_skills'][:15]
-                    st.markdown(", ".join([f"`{s}`" for s in skills_display]))
-                    if len(job['matched_skills']) > 15:
-                        st.caption(f"... dan {len(job['matched_skills']) - 15} skills lainnya")
-                
-                with st.container():
-                    st.markdown("**📄 Deskripsi:**")
-                    st.caption(job['description_preview'])
+                    skills_html = " ".join([f"<span style='background-color: rgba(57, 255, 20, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-right: 4px;'>{s}</span>" for s in job['matched_skills'][:10]])
+                    st.markdown(skills_html, unsafe_allow_html=True)
             
-            with col_job2:
+            with col_body2:
+                # Actions & Meta
+                if job['matched_occupations']:
+                    st.markdown("**✅ Matched:**")
+                    for occ in job['matched_occupations'][:2]:
+                        st.caption(f"• {occ}")
+                
+                st.write("")
                 st.link_button(
                     "🔗 Lihat Lowongan",
                     job['link'],
-                    use_container_width=True
+                    use_container_width=True,
+                    type="primary"
                 )
-                
-                st.markdown("---")
-                st.metric("Keywords", job['matched_keywords_count'])
+
+    # Pagination Controls
+    if total_pages > 1:
+        st.markdown("---")
+        col_prev, col_page, col_next = st.columns([1, 2, 1])
+        
+        with col_prev:
+            if st.session_state.rss_jobs_page > 1:
+                if st.button("⬅️ Previous", key="prev_job_page", use_container_width=True):
+                    st.session_state.rss_jobs_page -= 1
+                    st.rerun()
+        
+        with col_page:
+            st.markdown(f"<p style='text-align: center; margin-top: 5px;'>Page <b>{st.session_state.rss_jobs_page}</b> of <b>{total_pages}</b></p>", unsafe_allow_html=True)
+            
+        with col_next:
+            if st.session_state.rss_jobs_page < total_pages:
+                if st.button("Next ➡️", key="next_job_page", use_container_width=True):
+                    st.session_state.rss_jobs_page += 1
+                    st.rerun()
     
     # Tips
     st.markdown("---")

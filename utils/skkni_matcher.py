@@ -194,12 +194,40 @@ class SKKNIMatcher:
     # ========================================
     
     def _parse_keywords(self, kuk_raw: str) -> List[str]:
-        """Parse keywords dari string"""
+        """Parse keywords dari string, respecting parentheses"""
         if not isinstance(kuk_raw, str):
             return []
         
-        parts = re.split(r'[,;/|]', kuk_raw)
-        keywords = [p.strip().lower() for p in parts if p.strip()]
+        keywords = []
+        current_word = []
+        paren_depth = 0
+        
+        # Parse char by char to handle parentheses
+        for char in kuk_raw:
+            if char == '(':
+                paren_depth += 1
+                current_word.append(char)
+            elif char == ')':
+                if paren_depth > 0:
+                    paren_depth -= 1
+                current_word.append(char)
+            elif char in [',', ';', '|', '\n'] and paren_depth == 0:
+                word = "".join(current_word).strip()
+                if word:
+                    keywords.append(word.lower())
+                current_word = []
+            else:
+                # Replace newline with space if passing through
+                if char == '\n':
+                    current_word.append(' ')
+                else:
+                    current_word.append(char)
+                
+        # Handle last word
+        if current_word:
+            word = "".join(current_word).strip()
+            if word:
+                keywords.append(word.lower())
         
         return list(dict.fromkeys(keywords))
     
